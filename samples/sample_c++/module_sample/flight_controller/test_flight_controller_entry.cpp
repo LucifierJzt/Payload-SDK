@@ -66,8 +66,6 @@ start:
         << "| [b] Slow rotate blade sample, only support on M400                                                             |\n"
         << "| [c] Select FTS pwm trigger position, support on M4/M4T/M4D/M4TD                                                |\n"
         << "| [d] Select FTS pwm trigger position, support on M400                                                           |\n"
-        << "| [e] Flight controller sample - set get perception parameters, support on M400                                  |\n"
-        << "| [f] Flight controller sample - set cmd start mission, support on M400                                          |\n"
         << std::endl;
 
     std::cin >> inputSelectSample;
@@ -116,12 +114,6 @@ start:
         case 'd': // for m400
             DjiTest_FlightControlFtsPwmTriggerSample(DJI_MOUNT_POSITION_EXTENSION_PORT_V2_NO4, "DJI_MOUNT_POSITION_EXTENSION_PORT_V2_NO4");
             break;
-        case 'e' : // for m400
-            DjiTest_FlightControlRunSample(E_DJI_TEST_FLIGHT_CTRL_SAMPLE_SELECT_SET_GET_PERCEPTION_PARAM);
-            goto start;
-        case 'f' : // for m400
-            DjiTest_FlightControlRunSample(E_DJI_TEST_FLIGHT_CTRL_SAMPLE_SELECT_SET_CMD_START_MISSION);
-            goto start;
         case 'q':
             break;
         default:

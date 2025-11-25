@@ -1,7 +1,7 @@
 /**
  ********************************************************************
- * @file    hal_i2c.h
- * @brief   This is the header file for "hal_i2c.c", defining the structure and
+ * @file    test_hoist_contorller.h
+ * @brief   This is the header file for "test_hoist_contorller.c", defining the structure and
  * (exported) function prototypes.
  *
  * @copyright (c) 2025 DJI. All rights reserved.
@@ -24,11 +24,12 @@
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef HAL_I2C_H
-#define HAL_I2C_H
+#ifndef HOIST_CONTROLLER_H
+#define HOIST_CONTROLLER_H
 
 /* Includes ------------------------------------------------------------------*/
-#include "dji_platform.h"
+#include "dji_typedef.h"
+#include "dji_psdk_hoist_controller.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,19 +37,17 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
+
 /* Exported types ------------------------------------------------------------*/
 
 /* Exported functions --------------------------------------------------------*/
-T_DjiReturnCode HalI2c_Init(T_DjiHalI2cConfig i2cConfig, T_DjiI2cHandle *i2cHandle);
-T_DjiReturnCode HalI2c_DeInit(T_DjiI2cHandle i2cHandle);
-T_DjiReturnCode HalI2c_WriteData(T_DjiI2cHandle i2cHandle, uint16_t devAddress,
-                                 const uint8_t *buf, uint32_t len, uint32_t *realLen);
-T_DjiReturnCode HalI2c_ReadData(T_DjiI2cHandle i2cHandle, uint16_t devAddress,
-                                uint8_t *buf, uint32_t len, uint32_t *realLen);
+T_DjiReturnCode DjiTest_HoistControllerStartService(void);
+T_DjiReturnCode DjiTest_HoistControllerStopService(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // HAL_I2C_H
+#endif // HOIST_CONTROLLER_H
+
 /************************ (C) COPYRIGHT DJI Innovations *******END OF FILE******/

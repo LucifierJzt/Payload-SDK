@@ -29,6 +29,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "dji_typedef.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -113,7 +114,6 @@ typedef enum {
     DJI_FLIGHT_CONTROLLER_LOW_BATTERY_LANDING_RESET_JOYSTICK_CTRL_AUTH_EVENT = 10, /*!< Reset the joystick control permission to RC when aircraft is executing low-battery-landing*/
     DJI_FLIGHT_CONTROLLER_OSDK_LOST_GET_JOYSTICK_CTRL_AUTH_EVENT = 11, /*!< Reset the joystick control permission to RC when PSDK is lost*/
     DJI_FLIGHT_CONTROLLER_NERA_FLIGHT_BOUNDARY_RESET_JOYSTICK_CTRL_AUTH_EVENT = 12, /*!< Reset the joystick control permission to RC when aircraft is near boundary.*/
-    DJI_FLIGHT_CONTROLLER_DOCK_REQUEST_CHANGE_JOYSTICK_CTRL_AUTH_EVENT = 13, /*!< Dock request change the joystick control permission.*/
 } E_DjiFlightControllerJoystickCtrlAuthoritySwitchEvent;
 
 /**
@@ -233,6 +233,11 @@ typedef enum {
 } E_DjiFlightControllerStableControlMode;
 
 typedef enum {
+    DJI_FLIGHT_CONTROLLER_DISABLE_ALL_AVIOD = 0, /*disable all avoid*/
+    DJI_FLIGHT_CONTROLLER_ENABLE_ALL_AVIOD = 1,  /*enable all avoid*/
+} E_DjiFlightControllerCloseAllAvoidCommand;
+
+typedef enum {
     DJI_FLIGHT_CONTROLLER_ENABLE_RC_LOST_ACTION = 0,
     DJI_FLIGHT_CONTROLLER_DISABLE_RC_LOST_ACTION = 1,
 } E_DjiFlightControllerRCLostActionEnableStatus;
@@ -283,57 +288,6 @@ typedef struct {
     uint16_t altitude;
 } T_DjiFlightControllerRidInfo;
 
-typedef struct
-{
-    double lat;
-    double lon;
-    float alt;
-} T_DjiFlightControllerPointInfo;
-
-typedef struct
-{
-    uint8_t version;
-    int8_t operation;
-    float mea;
-    uint8_t fly_vel;
-    uint8_t goal_num;
-    T_DjiFlightControllerPointInfo cmd_mode_point_info[1];
-} T_DjiFlightControllerStartMissionReq;
-
-typedef struct
-{
-    uint8_t ret_code;
-    uint16_t error_code;
-    uint8_t code_name;
-} T_DjiFlightControllerStartMissionRsp;
-
-typedef struct
-{
-    uint8_t mission_state_machine;
-    uint8_t mission_planning_algo;
-    uint8_t goal_index;
-    float distance_remaining;
-    float time_remaining;
-    uint8_t soe_remaining;
-    uint8_t progress;
-    uint8_t success_rate;
-} T_DjiFlightControllerOpenMis;
-
-typedef struct
-{
-    int32_t latitude;
-    int32_t longitude;
-    int32_t altitude;
-} T_DjiFlightControllerSpotlightZoomGps;
-
-typedef struct
-{
-    uint8_t code_name;
-    uint8_t point_num;
-    uint8_t byte_per_point;
-    T_DjiFlightControllerSpotlightZoomGps points[1];
-    uint8_t last_point_type;
-} T_DjiFlightControllerCoreTraj;
 #pragma pack()
 
 typedef struct {
@@ -361,69 +315,6 @@ T_DjiReturnCode DjiFlightController_Init(T_DjiFlightControllerRidInfo ridInfo);
 T_DjiReturnCode DjiFlightController_DeInit(void);
 
 /**
- * @brief Set planning algorithm.
- * @param algo: 0:smart height, 1:Manual height".
- * @return Execution result.
- */
-T_DjiReturnCode DjiFlightController_SetPlanningAlgo(uint8_t algo);
-
-/**
- * @brief Set max velocity.
- * @param value: max velocity value, min:1, max:15".
- * @return Execution result.
-*/
-T_DjiReturnCode DjiFlightController_SetMaxVelocity(uint8_t value);
-
-/**
- * @brief Set retarded height.
- * @param value: retarded height value, min:1.0, max:3000.0".
- * @return Execution result.
-*/
-T_DjiReturnCode DjiFlightController_SetRetardedHeigh(float value);
-
-/**
- * @brief Get exit reason.
- * @param reason: exit reason".
- * @return Execution result.
-*/
-T_DjiReturnCode DjiFlightController_GetExitReason(uint16_t *reason);
-
-/**
- * @brief Prototype of callback function used to get open mis info.
- * @return Execution result.
- */
-typedef T_DjiReturnCode (*FcCmderModeOpenMisEventCbFunc)(T_DjiFlightControllerOpenMis eventData);
-
-/**
- * @brief Prototype of callback function used to get core traj info.
- * @return Execution result.
- */
-typedef T_DjiReturnCode (*FcCmderModeCoreTrajEventCbFunc)(T_DjiFlightControllerCoreTraj eventData);
-
-/**
- * @brief Register callback function for the open mis event.
- * @param callback: the callback for the open mis  event.
- * @return Execution result.
- */
-T_DjiReturnCode DjiFlightController_RegisterOpenMisInfoCallBack(FcCmderModeOpenMisEventCbFunc callback);
-
-/**
- * @brief Register callback function for the core traj event.
- * @param callback: the callback for the core traj event.
- * @return Execution result.
- */
-T_DjiReturnCode DjiFlightController_RegisterCoreTrajCallBack(FcCmderModeCoreTrajEventCbFunc callback);
-
-/**
- * @brief set mode start mossion.
- * @param command: cmd for start mission.
- * @param rsp: response data for set start mission.
- * @return Execution result.
- */
-T_DjiReturnCode DjiFlightController_SetModeStartMossion(T_DjiFlightControllerStartMissionReq command,
-                                                       T_DjiFlightControllerStartMissionRsp *rsp);
-
-/**
  * @brief Enable/Disable RTK position function.
  * @details Enabling RTK means that RTK data will be used instead of GPS during flight.
  * @param rtkEnableStatus: refer to "E_DjiFlightControllerRtkPositionEnableStatus", inheriting from Pilot.
@@ -440,6 +331,22 @@ DjiFlightController_SetRtkPositionEnableStatus(E_DjiFlightControllerRtkPositionE
  */
 T_DjiReturnCode
 DjiFlightController_GetRtkPositionEnableStatus(E_DjiFlightControllerRtkPositionEnableStatus *rtkEnableStatus);
+
+/**
+ * @brief Set all radar avoid action.
+ * @note  It only supports FC100.
+ * @param rcLostAction: actions when radar action.It inherits from Pilot's param.
+ * @return Execution result.
+ */
+T_DjiReturnCode DjiFlightController_SetAllAvoidAction(E_DjiFlightControllerCloseAllAvoidCommand allAction);
+
+/**
+ * @brief Get all radar avoid action.
+ * @note It only supports FC100.
+ * @param rcLostAction: see reference of E_DjiFlightControllerCloseAllAvoidCommand.It inherits from Pilot's param.
+ * @return Execution result.
+ */
+T_DjiReturnCode DjiFlightController_GetAllAvoidAction(E_DjiFlightControllerCloseAllAvoidCommand *allAction);
 
 /**
  * @brief Set RC lost action.

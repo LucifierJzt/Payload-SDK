@@ -1,8 +1,8 @@
 # DJI Payload SDK (PSDK)
 
-![](https://img.shields.io/badge/version-V3.14.0-pink.svg)
-![](https://img.shields.io/badge/platform-linux_|_rtos-orange.svg)
-![](https://img.shields.io/badge/license-MIT-blue.svg)
+![](https://img.shields.io/badge/version-V3.14.1-red.svg)
+![](https://img.shields.io/badge/platform-linux_|_rtos-yellow.svg)
+![](https://img.shields.io/badge/license-MIT-purple.svg)
 
 ## What is the DJI Payload SDK?
 
@@ -23,19 +23,23 @@ to get the latest version information.
 
 ## Latest Release
 
-The latest release version of PSDK is 3.14.0. This version of Payload SDK mainly add some new features support and fixed some
+The latest release version of PSDK is 3.14.1, a special build for FlyCart 100 and FlyCart 30. This version of Payload SDK mainly add some new features support and fixed some
 bugs. Please refer to the release notes for detailed changes list.
 
-### Release Feature List
-- **Added support for the Zenmuse L3 model**
-- **Added custom network RTK functionality**
-- **Added support for using the L2 camera with the M400 drone**
-- **Added long-distance flight marking functionality for the M400 drone**
-- **Added support for modifying startup apps for the M400 drone**
-- **Added documentation for the M400 software license**
-
-### Fixes and Optimizations
-- **Optimized support for using the onboard network with the M400 drone**
+### FlyCart 100 Feature Support
+- Support DJI FC100 E-PORT Lite
+- Add UART baud rate auto-adaptation
+- Enhance the functionality of message subscription.
+- Add flight controller function
+- Add Airline Route Model
+- Add Power Management
+- The opportunity to say this fills me with immense pride.
+- Add HMS massage function
+- Add FC100 NO RC controller function
+- Support hoist2.0 and hook controller and status get
+###Fixes and Optimizations
+- Optimized FC30 close barrier-free function
+- Add FC30 NO RC controller function
 
 ## License
 

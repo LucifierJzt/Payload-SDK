@@ -37,7 +37,6 @@
 
 #include "application.h"
 #include "hal_uart.h"
-#include "hal_i2c.h"
 #include "osal.h"
 #include "dji_sdk_app_info.h"
 #include "dji_sdk_config.h"
@@ -59,7 +58,7 @@
 #include "upgrade/test_upgrade.h"
 #include "power_management/test_power_management.h"
 #include "tethered_battery/test_tethered_battery.h"
-#include "FreeRTOS.h"
+
 /* Private constants ---------------------------------------------------------*/
 #define RUN_INDICATE_TASK_FREQ_1HZ        1
 #define RUN_INDICATE_TASK_FREQ_0D1HZ      0.1f
@@ -113,12 +112,6 @@ void DjiUser_StartTask(void const *argument)
         .UartGetStatus = HalUart_GetStatus,
         .UartGetDeviceInfo = HalUart_GetDeviceInfo,
     };
-    T_DjiHalI2cHandler i2CHandler = {
-        .I2cInit = HalI2c_Init,
-        .I2cDeInit = HalI2c_DeInit,
-        .I2cWriteData = HalI2c_WriteData,
-        .I2cReadData = HalI2c_ReadData,
-    };
     T_DjiFirmwareVersion firmwareVersion = {
         .majorVersion = USER_FIRMWARE_MAJOR_VERSION,
         .minorVersion = USER_FIRMWARE_MINOR_VERSION,
@@ -138,13 +131,6 @@ void DjiUser_StartTask(void const *argument)
         goto out;
     }
 
-    USER_LOG_INFO("Register hal i2c handler.");
-    returnCode = DjiPlatform_RegHalI2cHandler(&i2CHandler);
-    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        printf("register hal i2c handler error");
-        goto out;
-    }
-
     returnCode = DjiLogger_AddConsole(&printConsole);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         printf("add printf console error");
@@ -157,22 +143,8 @@ void DjiUser_StartTask(void const *argument)
         goto out;
     }
 
-
-    returnCode = DjiCore_SetFirmwareVersion(firmwareVersion);
-    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_ERROR("set firmware version error");
-        goto out;
-    }
-
-    returnCode = DjiCore_SetSerialNumber("PSDK12345678XX");
-    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_ERROR("set serial number error");
-        goto out;
-    }
-
     returnCode = DjiCore_Init(&userInfo);
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        osalHandler.TaskSleepMs(200);
         USER_LOG_ERROR("core init error");
         goto out;
     }
@@ -189,6 +161,20 @@ void DjiUser_StartTask(void const *argument)
         goto out;
     }
 
+    returnCode = DjiCore_SetFirmwareVersion(firmwareVersion);
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("set firmware version error");
+        goto out;
+    }
+
+    returnCode = DjiCore_SetSerialNumber("PSDK12345678XX");
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("set serial number error");
+        goto out;
+    }
+
+    USER_LOG_INFO("uint32_t size %d, long unsigned int size %d, unsigned int size %d",
+        sizeof(uint32_t), sizeof(long unsigned int), sizeof(unsigned int));
 
 #ifdef CONFIG_MODULE_SAMPLE_POWER_MANAGEMENT_ON
     T_DjiTestApplyHighPowerHandler applyHighPowerHandler = {
@@ -440,8 +426,8 @@ void DjiUser_MonitorTask(void const *argument)
            }
 
            currentTaskStatusArraySize = uxTaskGetSystemState(currentTaskStatusArray, currentTaskStatusArraySize, NULL);
-           USER_LOG_INFO("task information:");
-           USER_LOG_INFO("task name\trun time (%%)\tstack left (byte)\tnumber");
+           USER_LOG_DEBUG("task information:");
+           USER_LOG_DEBUG("task name\trun time (%%)\tstack left (byte)\tnumber");
            for (i = 0; i < currentTaskStatusArraySize; i++) {
                cpuOccupyPercentage = 0;
                for (j = 0; j < lastTaskStatusArraySize; ++j) {
@@ -452,7 +438,7 @@ void DjiUser_MonitorTask(void const *argument)
                        break;
                    }
                }
-               USER_LOG_INFO("%-16s\t%u\t%u\t%u", currentTaskStatusArray[i].pcTaskName, cpuOccupyPercentage,
+               USER_LOG_DEBUG("%-16s\t%u\t%u\t%u", currentTaskStatusArray[i].pcTaskName, cpuOccupyPercentage,
                               (unsigned int) currentTaskStatusArray[i].usStackHighWaterMark * sizeof(StackType_t),
                               (unsigned int) currentTaskStatusArray[i].xTaskNumber);
            }

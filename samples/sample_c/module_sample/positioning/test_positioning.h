@@ -36,18 +36,12 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 
-typedef enum {
-    DJI_TEST_NETWORK_RTK_START =  0,
-    DJI_TEST_NETWORK_RTK_STOP = 1,
-} E_DjiTestNetworkRtkCtrl;
-
 
 /* Exported types ------------------------------------------------------------*/
 
 
 /* Exported functions --------------------------------------------------------*/
 T_DjiReturnCode DjiTest_PositioningStartService(void);
-T_DjiReturnCode DjiTest_NetworkRtkOnBoardService(E_DjiTestNetworkRtkCtrl ctrl);
 
 #ifdef __cplusplus
 }

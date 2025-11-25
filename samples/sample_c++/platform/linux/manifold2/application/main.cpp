@@ -43,6 +43,8 @@
 #include <positioning/test_positioning.h>
 #include <hms_manager/hms_manager_entry.h>
 #include "camera_manager/test_camera_manager_entry.h"
+#include <waypoint_v2/test_waypoint_v2.h>
+#include <waypoint_v3/test_waypoint_v3.h>
 
 /* Private constants ---------------------------------------------------------*/
 
@@ -57,6 +59,7 @@ int main(int argc, char **argv)
 {
     Application application(argc, argv);
     char inputChar;
+    T_DjiReturnCode djiStat;
     T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
     T_DjiReturnCode returnCode;
     T_DjiTestApplyHighPowerHandler applyHighPowerHandler;
@@ -68,6 +71,7 @@ start:
         << "| [0] Fc subscribe sample - subscribe quaternion and gps data                                      |\n"
         << "| [1] Flight controller sample - you can control flying by PSDK                                    |\n"
         << "| [2] Hms info manager sample - get health manger system info by language                          |\n"
+        << "| [9] Waypoint 3.0 sample - run airline mission by kmz file (not support on M300 RTK)              |\n"
         << "| [a] Gimbal manager sample - you can control gimbal by PSDK                                       |\n"
         << "| [c] Camera stream view sample - display the camera video stream                                  |\n"
         << "| [d] Stereo vision view sample - display the stereo image                                         |\n"
@@ -80,6 +84,23 @@ start:
     std::cin >> inputChar;
     switch (inputChar) {
         case '0':
+            djiStat = DjiFcSubscription_SubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_TIME, DJI_DATA_SUBSCRIPTION_TOPIC_1_HZ,
+                                                NULL);
+            if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Subscribe topic gpstimes error.");
+                return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+            } else {
+                USER_LOG_DEBUG("Subscribe topic gpstimes success.");
+            }
+
+            djiStat = DjiFcSubscription_SubscribeTopic(DJI_FC_SUBSCRIPTION_TOPIC_GPS_DATE, DJI_DATA_SUBSCRIPTION_TOPIC_1_HZ,
+                                                NULL);
+            if (djiStat != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+                USER_LOG_ERROR("Subscribe topic gpsdata error.");
+                return DJI_ERROR_SYSTEM_MODULE_CODE_UNKNOWN;
+            } else {
+                USER_LOG_DEBUG("Subscribe topic gpsdata success.");
+            }
             DjiTest_FcSubscriptionRunSample();
             break;
         case '1':
@@ -87,6 +108,12 @@ start:
             break;
         case '2':
             DjiUser_RunHmsManagerSample();
+            break;
+        case '8':
+            DjiTest_WaypointV2RunSample();
+            break;
+        case '9':
+            DjiTest_WaypointV3RunSample();
             break;
         case 'a':
             DjiUser_RunGimbalManagerSample();

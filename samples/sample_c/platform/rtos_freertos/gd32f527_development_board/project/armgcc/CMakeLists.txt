@@ -56,6 +56,7 @@ include_directories (
     ../../../../../../../modules/upgrade/include
     ../../../../../../../modules/time_sync/include
     ../../../../../../../modules/power_management/include
+    ../../../../../../../modules/hoist_controller/include
     ../../../../../../../modules/positioning/include
     ../../../../../../../modules/platform/include
     ../../../../../../../modules/perception/include
@@ -79,7 +80,6 @@ include_directories (
     ../../../../../../../modules/authentication/ciu98/huada_lib/inc
     ../../../../../../../modules/authentication
     ../../../../../../../modules/authentication/ciu98
-    ../../../../../../../modules/network_rtk/include
     ../../drivers/CMSIS/include
     ../../drivers/CMSIS/GD/GD32F5xx/Include
     ../../drivers/BSP
@@ -152,7 +152,6 @@ file(GLOB_RECURSE SOURCES
     ../../middlewares/FreeRTOS-10.3.1/stream_buffer.c
     ../../middlewares/FreeRTOS-10.3.1/timers.c
     ../../hal/hal_uart.c
-    ../../hal/hal_i2c.c
 )
 
 

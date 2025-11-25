@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <power_management/test_power_management.h>
+#include <hoist_contro/test_hoist_controller.h>
 #include <gimbal_emu/test_payload_gimbal_emu.h>
 #include <fc_subscription/test_fc_subscription.h>
 #include <camera_emu/test_payload_cam_emu_media.h>
@@ -189,6 +190,13 @@ int main(int argc, char **argv)
     returnCode = DjiTest_DataTransmissionStartService();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         USER_LOG_ERROR("widget sample init error");
+    }
+#endif
+
+#ifdef CONFIG_MODULE_SAMPLE_HOIST_CONTROLLER_ON
+    returnCode = DjiTest_HoistControllerStartService();
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        USER_LOG_ERROR("hoist controller sample init error");
     }
 #endif
 
@@ -534,6 +542,13 @@ static T_DjiReturnCode DjiUser_CleanSystemEnvironment(void)
     returnCode = DjiTest_DataTransmissionStopService();
     if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
         perror("widget sample deinit error");
+    }
+#endif
+
+#ifdef CONFIG_MODULE_SAMPLE_HOIST_CONTROLLER_ON
+    returnCode = DjiTest_HoistControllerStopService();
+    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+        perror("hoist controller sample deinit error");
     }
 #endif
 

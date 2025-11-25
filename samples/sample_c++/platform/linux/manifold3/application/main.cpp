@@ -47,10 +47,7 @@
 #include <hms_manager/hms_manager_entry.h>
 #include <liveview/dji_liveview_object_detection.hpp>
 #include "liveview/test_liveview.h"
-#include "positioning/test_positioning_entry.h"
 #include <signal.h>
-#include "dji_aircraft_info.h"
-
 /* Private constants ---------------------------------------------------------*/
 
 /* Private types -------------------------------------------------------------*/
@@ -76,7 +73,6 @@ start:
         << "| [0] Fc subscribe sample - subscribe quaternion and gps data                                      |\n"
         << "| [1] Flight controller sample - you can control flying by PSDK                                    |\n"
         << "| [2] Hms info manager sample - get health manger system info by language                          |\n"
-        << "| [3] Network hms test                                                                             |\n"
         << "| [a] Gimbal manager sample - you can control gimbal by PSDK                                       |\n"
         << "| [d] Stereo vision view sample - display the stereo image                                         |\n"
         << "| [e] Run camera manager sample - you can test camera's functions interactively                    |\n"
@@ -88,7 +84,6 @@ start:
         << "| [l] Run widget states manager sample, control widget states on other payload                     |\n"
         << "| [m] Run Open Ar sample - draw ar gragh                                                           |\n"
         << "| [n] Run H.264 liveview sample - save H.264 files in the current directory                        |\n"
-        << "| [p] Run the onboard RTK sample – you can control the onboard RTK to start or stop                |\n"
         << std::endl;
 
     std::cin >> inputChar;
@@ -101,9 +96,6 @@ start:
             break;
         case '2':
             DjiUser_RunHmsManagerSample();
-            break;
-        case '3':
-            DjiUser_RunHmsNetworkSample();
             break;
         case 'a':
             DjiUser_RunGimbalManagerSample();
@@ -141,10 +133,7 @@ start:
             DjiUser_RunOpenArSample();
             break;
         case 'n':
-            DjiTest_LiveviewSample();
-            break;
-        case 'p':
-            DjiTest_RunOnboardRTKSample();
+            DjiTest_LiveviewRunSample(mountPosition);
             break;
         case 'q':
             break;

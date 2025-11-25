@@ -61,7 +61,6 @@ static T_DjiHmsFileBinaryArray s_EnHmsTextConfigFileBinaryArrayList[] = {
 };
 #ifdef SYSTEM_ARCH_LINUX
 static uint8_t *s_hmsJsonData = NULL;
-static T_DjiMutexHandle s_hmsJsonDataMutex = {0};
 #endif
 static E_DjiMobileAppLanguage s_hmsLanguage = DJI_MOBILE_APP_LANGUAGE_ENGLISH;
 static bool s_isHmsConfigFileDirPathConfigured = false;
@@ -98,7 +97,6 @@ T_DjiReturnCode DjiTest_HmsManagerRunSample(E_DjiMobileAppLanguage language)
     }
 
     osalHandler = DjiPlatform_GetOsalHandler();
-
     USER_LOG_INFO("--> Step 2: Register callback function of push HMS information");
     DjiTest_WidgetLogAppend("--> Step 2: Register callback function of push HMS information");
     returnCode = DjiHmsManager_RegHmsInfoCallback(DjiTest_HmsInfoCallback);
@@ -222,12 +220,6 @@ static T_DjiReturnCode DjiTest_HmsManagerInit(void)
     uint32_t fileSize = 0;
     uint32_t readRealSize = 0;
     T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
-
-    returnCode = osalHandler->MutexCreate(&s_hmsJsonDataMutex);
-    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_ERROR("Create mutex error: 0x%08llX.", returnCode);
-        return returnCode;
-    }
 #endif
 
     returnCode = DjiFcSubscription_Init();
@@ -291,15 +283,7 @@ static T_DjiReturnCode DjiTest_HmsManagerDeInit(void)
     }
 
 #ifdef SYSTEM_ARCH_LINUX
-    osalHandler->MutexLock(s_hmsJsonDataMutex);
     osalHandler->Free(s_hmsJsonData);
-    s_hmsJsonData = NULL;
-    osalHandler->MutexUnlock(s_hmsJsonDataMutex);
-
-    returnCode = osalHandler->MutexDestroy(s_hmsJsonDataMutex);
-    if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-        USER_LOG_ERROR("Destroy mutex error: 0x%08llX.", returnCode);
-    }
 #endif
 
     isHmsManagerInit = false;
@@ -427,18 +411,11 @@ static bool DjiTest_MarchErrCodeInfoTableByJson(T_DjiHmsInfoTable hmsInfoTable)
     char componentIdStr[20] = {0};
     char printBuff[256] = {0};
     char hmsErrorCodeString[HMS_DIR_PATH_LEN_MAX] = {0};
-    T_DjiOsalHandler *osalHandler = DjiPlatform_GetOsalHandler();
-
-    osalHandler->MutexLock(s_hmsJsonDataMutex);
-    if (s_hmsJsonData == NULL) {
-        return 0;
-    }
 
     hmsJsonRoot = cJSON_Parse((char *) s_hmsJsonData);
     if (hmsJsonRoot == NULL) {
         return 0;
     }
-    osalHandler->MutexUnlock(s_hmsJsonDataMutex);
 
     for (int i = 0; i < hmsInfoTable.hmsInfoNum; i++) {
         if (DjiTest_GetValueOfFlightStatus() == DJI_FC_SUBSCRIPTION_FLIGHT_STATUS_IN_AIR) {
