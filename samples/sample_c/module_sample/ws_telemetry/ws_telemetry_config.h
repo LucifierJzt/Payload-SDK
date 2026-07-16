@@ -52,8 +52,14 @@
 #define WS_LIVEVIEW_CAMERA_POSITION  1
 #define WS_LIVEVIEW_CAMERA_SOURCE    1
 #define WS_LIVEVIEW_OUT_DIR          "/home/dji/live_out"
-/* Set non-empty RTMP URL and WS_LIVEVIEW_PUSH_RTMP 1 to push (needs ffmpeg) */
-#define WS_LIVEVIEW_PUSH_RTMP        0
-#define WS_LIVEVIEW_RTMP_URL         "rtmp://1.13.253.227:1935/live/manifold"
+/*
+ * Realtime push (needs ffmpeg on Manifold):
+ * - rtmp://host:1935/live/key   → cloud player / OBS / flv.js
+ * - udp://PC_LAN_IP:5000        → Mac: ffplay -fflags nobuffer udp://0.0.0.0:5000
+ * live_start can override with payload.rtmp or payload.push_url
+ */
+#define WS_LIVEVIEW_PUSH_ENABLE      1
+/* Default RTMP (stream key: manifold). Override via live_start payload.rtmp */
+#define WS_LIVEVIEW_PUSH_URL         "rtmp://121.40.203.74/live/manifold"
 
 #endif /* WS_TELEMETRY_CONFIG_H */

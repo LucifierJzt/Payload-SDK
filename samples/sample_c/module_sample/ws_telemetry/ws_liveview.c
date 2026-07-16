@@ -1,6 +1,6 @@
 /**
  * @file ws_liveview.c
- * @brief Start/stop aircraft camera H264 liveview on Manifold 3 (M4T).
+ * @brief Realtime H264 from aircraft camera; file + optional RTMP/UDP push via ffmpeg.
  */
 
 #include "ws_liveview.h"
@@ -23,6 +23,7 @@
 #include "utils/util_misc.h"
 
 #define WS_LIVE_PATH_MAX  256
+#define WS_LIVE_PUSH_MAX  320
 
 static pthread_mutex_t s_mu = PTHREAD_MUTEX_INITIALIZER;
 static volatile int s_running = 0;
@@ -30,6 +31,7 @@ static volatile int s_inited = 0;
 static FILE *s_fp = NULL;
 static FILE *s_ffmpeg = NULL;
 static char s_outPath[WS_LIVE_PATH_MAX];
+static char s_pushUrl[WS_LIVE_PUSH_MAX];
 static uint64_t s_bytes = 0;
 static uint32_t s_cbCount = 0;
 static E_DjiLiveViewCameraPosition s_pos;
@@ -57,7 +59,7 @@ static void WsLiveview_H264Callback(E_DjiLiveViewCameraPosition position, const 
         if (n != bufLen) {
             USER_LOG_WARN("ws live fwrite short %zu/%u", n, bufLen);
         }
-        if ((s_cbCount % 100) == 0) {
+        if ((s_cbCount % 50) == 0) {
             fflush(s_fp);
         }
     }
@@ -65,14 +67,17 @@ static void WsLiveview_H264Callback(E_DjiLiveViewCameraPosition position, const 
         n = fwrite(buf, 1, bufLen, s_ffmpeg);
         if (n != bufLen) {
             USER_LOG_WARN("ws live ffmpeg pipe short %zu/%u errno=%d", n, bufLen, errno);
+        } else if ((s_cbCount % 30) == 0) {
+            fflush(s_ffmpeg);
         }
     }
     pthread_mutex_unlock(&s_mu);
 
-    if ((s_cbCount % 200) == 1) {
-        USER_LOG_INFO("ws live h264 cb#%u len=%u total_bytes=%llu",
+    if ((s_cbCount % 150) == 1) {
+        USER_LOG_INFO("ws live h264 cb#%u len=%u total=%llu push=%s",
                       (unsigned) s_cbCount, (unsigned) bufLen,
-                      (unsigned long long) s_bytes);
+                      (unsigned long long) s_bytes,
+                      s_pushUrl[0] ? s_pushUrl : "file-only");
     }
 }
 
@@ -97,6 +102,53 @@ static E_DjiLiveViewCameraSource WsLiveview_PickSource(void)
     return (E_DjiLiveViewCameraSource) WS_LIVEVIEW_CAMERA_SOURCE;
 }
 
+static int WsLiveview_OpenPush(const char *url)
+{
+    char cmd[700];
+
+    if (url == NULL || url[0] == '\0') {
+        return 0;
+    }
+    if (access("/usr/bin/ffmpeg", X_OK) != 0 && access("/bin/ffmpeg", X_OK) != 0 &&
+        access("/usr/local/bin/ffmpeg", X_OK) != 0) {
+        /* still try PATH */
+        USER_LOG_WARN("ws live: ffmpeg may be missing on PATH");
+    }
+
+    if (strncmp(url, "rtmp://", 7) == 0 || strncmp(url, "rtmps://", 8) == 0) {
+        snprintf(cmd, sizeof(cmd),
+                 "ffmpeg -hide_banner -loglevel warning -fflags nobuffer -flags low_delay "
+                 "-f h264 -i pipe:0 -c:v copy -an -f flv \"%s\" 2>>/tmp/ws_live_ffmpeg.log",
+                 url);
+    } else if (strncmp(url, "udp://", 6) == 0) {
+        /* LAN realtime: Mac runs ffplay udp://0.0.0.0:PORT */
+        snprintf(cmd, sizeof(cmd),
+                 "ffmpeg -hide_banner -loglevel warning -fflags nobuffer -flags low_delay "
+                 "-f h264 -i pipe:0 -c:v copy -an -f mpegts \"%s?pkt_size=1316\" "
+                 "2>>/tmp/ws_live_ffmpeg.log",
+                 url);
+    } else if (strncmp(url, "tcp://", 6) == 0) {
+        snprintf(cmd, sizeof(cmd),
+                 "ffmpeg -hide_banner -loglevel warning -fflags nobuffer -flags low_delay "
+                 "-f h264 -i pipe:0 -c:v copy -an -f mpegts \"%s\" "
+                 "2>>/tmp/ws_live_ffmpeg.log",
+                 url);
+    } else {
+        USER_LOG_ERROR("ws live unsupported push url (use rtmp:// or udp://): %s", url);
+        return -1;
+    }
+
+    s_ffmpeg = popen(cmd, "w");
+    if (s_ffmpeg == NULL) {
+        USER_LOG_ERROR("ws live popen ffmpeg failed: %s", strerror(errno));
+        return -1;
+    }
+    /* line-buffered-ish */
+    setvbuf(s_ffmpeg, NULL, _IONBF, 0);
+    USER_LOG_INFO("ws live push pipeline -> %s", url);
+    return 0;
+}
+
 T_DjiReturnCode WsLiveview_InitOnce(void)
 {
     T_DjiReturnCode ret;
@@ -118,12 +170,12 @@ T_DjiReturnCode WsLiveview_InitOnce(void)
     return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
 }
 
-T_DjiReturnCode WsLiveview_Start(void)
+T_DjiReturnCode WsLiveview_Start(const char *pushUrl)
 {
     T_DjiReturnCode ret;
     time_t now;
     struct tm tmNow;
-    char cmd[512];
+    char effectivePush[WS_LIVE_PUSH_MAX];
 
 #if !WS_LIVEVIEW_ENABLE
     return DJI_ERROR_SYSTEM_MODULE_CODE_SYSTEM_ERROR;
@@ -134,16 +186,24 @@ T_DjiReturnCode WsLiveview_Start(void)
         return ret;
     }
 
-    pthread_mutex_lock(&s_mu);
+    /* already running: restart if new push requested */
     if (s_running) {
-        pthread_mutex_unlock(&s_mu);
-        return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
+        (void) WsLiveview_Stop();
     }
 
+    effectivePush[0] = '\0';
+    if (pushUrl != NULL && pushUrl[0] != '\0') {
+        snprintf(effectivePush, sizeof(effectivePush), "%s", pushUrl);
+    } else if (WS_LIVEVIEW_PUSH_ENABLE && WS_LIVEVIEW_PUSH_URL[0] != '\0') {
+        snprintf(effectivePush, sizeof(effectivePush), "%s", WS_LIVEVIEW_PUSH_URL);
+    }
+
+    pthread_mutex_lock(&s_mu);
     s_pos = (E_DjiLiveViewCameraPosition) WS_LIVEVIEW_CAMERA_POSITION;
     s_src = WsLiveview_PickSource();
     s_bytes = 0;
     s_cbCount = 0;
+    snprintf(s_pushUrl, sizeof(s_pushUrl), "%s", effectivePush);
 
     (void) mkdir(WS_LIVEVIEW_OUT_DIR, 0755);
     now = time(NULL);
@@ -162,26 +222,18 @@ T_DjiReturnCode WsLiveview_Start(void)
     }
 
     s_ffmpeg = NULL;
-#if WS_LIVEVIEW_PUSH_RTMP
-    if (WS_LIVEVIEW_RTMP_URL[0] != '\0') {
-        /* Requires ffmpeg on Manifold; H264 annex-B from Liveview. */
-        snprintf(cmd, sizeof(cmd),
-                 "ffmpeg -loglevel warning -fflags nobuffer -f h264 -i pipe:0 "
-                 "-c copy -f flv \"%s\" 2>/tmp/ws_live_ffmpeg.log",
-                 WS_LIVEVIEW_RTMP_URL);
-        s_ffmpeg = popen(cmd, "w");
-        if (s_ffmpeg == NULL) {
-            USER_LOG_WARN("ws live ffmpeg popen fail (file-only mode): %s", strerror(errno));
-        } else {
-            USER_LOG_INFO("ws live rtmp push started -> %s", WS_LIVEVIEW_RTMP_URL);
+    if (s_pushUrl[0] != '\0') {
+        if (WsLiveview_OpenPush(s_pushUrl) != 0) {
+            USER_LOG_WARN("ws live continue file-only (push failed)");
+            s_pushUrl[0] = '\0';
         }
     }
-#endif
 
     pthread_mutex_unlock(&s_mu);
 
-    USER_LOG_INFO("ws live start H264 pos=%d src=%d file=%s",
-                  (int) s_pos, (int) s_src, s_outPath);
+    USER_LOG_INFO("ws live start H264 pos=%d src=%d file=%s push=%s",
+                  (int) s_pos, (int) s_src, s_outPath,
+                  s_pushUrl[0] ? s_pushUrl : "(none)");
 
     ret = DjiLiveview_StartH264Stream(s_pos, s_src, WsLiveview_H264Callback);
     if (ret != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
@@ -202,7 +254,8 @@ T_DjiReturnCode WsLiveview_Start(void)
     pthread_mutex_lock(&s_mu);
     s_running = 1;
     pthread_mutex_unlock(&s_mu);
-    USER_LOG_INFO("ws live streaming");
+    USER_LOG_INFO("ws live streaming (realtime capture%s)",
+                  s_pushUrl[0] ? " + push" : ", file only");
     return DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS;
 }
 
@@ -235,8 +288,8 @@ T_DjiReturnCode WsLiveview_Stop(void)
     }
     pthread_mutex_unlock(&s_mu);
 
-    USER_LOG_INFO("ws live stopped bytes=%llu cbs=%u file=%s",
-                  (unsigned long long) s_bytes, (unsigned) s_cbCount, s_outPath);
+    USER_LOG_INFO("ws live stopped bytes=%llu cbs=%u",
+                  (unsigned long long) s_bytes, (unsigned) s_cbCount);
     return ret;
 }
 
@@ -245,7 +298,9 @@ int WsLiveview_IsRunning(void)
     return s_running;
 }
 
-void WsLiveview_GetStats(uint64_t *bytesOut, uint32_t *framesOut, char *pathBuf, size_t pathLen)
+void WsLiveview_GetStats(uint64_t *bytesOut, uint32_t *framesOut,
+                         char *pathBuf, size_t pathLen,
+                         char *pushBuf, size_t pushLen)
 {
     pthread_mutex_lock(&s_mu);
     if (bytesOut) {
@@ -256,6 +311,9 @@ void WsLiveview_GetStats(uint64_t *bytesOut, uint32_t *framesOut, char *pathBuf,
     }
     if (pathBuf && pathLen > 0) {
         snprintf(pathBuf, pathLen, "%s", s_outPath);
+    }
+    if (pushBuf && pushLen > 0) {
+        snprintf(pushBuf, pushLen, "%s", s_pushUrl);
     }
     pthread_mutex_unlock(&s_mu);
 }

@@ -627,19 +627,21 @@ static void Ws_HandleCommandJson(int fd, const char *json)
     }
 
     if (strcmp(name, "status") == 0) {
-        char msg[256];
+        char msg[320];
         uint64_t liveBytes = 0;
         uint32_t liveCbs = 0;
         char livePath[128];
+        char livePush[160];
         livePath[0] = '\0';
-        WsLiveview_GetStats(&liveBytes, &liveCbs, livePath, sizeof(livePath));
+        livePush[0] = '\0';
+        WsLiveview_GetStats(&liveBytes, &liveCbs, livePath, sizeof(livePath),
+                            livePush, sizeof(livePush));
         snprintf(msg, sizeof(msg),
-                 "online flight_busy=%d allow_flight=%d dry_run=%d allow_gimbal=%d "
-                 "live=%d live_bytes=%llu live_cb=%u",
-                 s_flightBusy, WS_TELEMETRY_ALLOW_FLIGHT_CMD,
-                 WS_TELEMETRY_FLIGHT_DRY_RUN, WS_TELEMETRY_ALLOW_GIMBAL_CMD,
+                 "online flight_busy=%d dry_run=%d live=%d live_bytes=%llu push=%s",
+                 s_flightBusy, WS_TELEMETRY_FLIGHT_DRY_RUN,
                  WsLiveview_IsRunning(),
-                 (unsigned long long) liveBytes, (unsigned) liveCbs);
+                 (unsigned long long) liveBytes,
+                 livePush[0] ? livePush : "none");
         Ws_SendCommandResult(fd, reqId, 1, msg);
         return;
     }
@@ -647,15 +649,24 @@ static void Ws_HandleCommandJson(int fd, const char *json)
     if (strcmp(name, "live_start") == 0 || strcmp(name, "liveview_start") == 0) {
 #if WS_LIVEVIEW_ENABLE
         {
-            T_DjiReturnCode lret = WsLiveview_Start();
+            char pushUrl[320];
+            T_DjiReturnCode lret;
+            pushUrl[0] = '\0';
+            /* optional: payload.rtmp or payload.push_url */
+            if (Ws_JsonGetString(json, "rtmp", pushUrl, sizeof(pushUrl)) != 0) {
+                (void) Ws_JsonGetString(json, "push_url", pushUrl, sizeof(pushUrl));
+            }
+            lret = WsLiveview_Start(pushUrl[0] ? pushUrl : NULL);
             if (lret == DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
-                char msg[320];
+                char msg[400];
                 char path[160];
+                char push[200];
                 uint64_t b = 0;
                 uint32_t c = 0;
-                WsLiveview_GetStats(&b, &c, path, sizeof(path));
-                snprintf(msg, sizeof(msg), "live_start_ok file=%s rtmp=%d",
-                         path, WS_LIVEVIEW_PUSH_RTMP);
+                path[0] = push[0] = '\0';
+                WsLiveview_GetStats(&b, &c, path, sizeof(path), push, sizeof(push));
+                snprintf(msg, sizeof(msg), "live_start_ok file=%s push=%s",
+                         path, push[0] ? push : "none");
                 Ws_SendCommandResult(fd, reqId, 1, msg);
             } else {
                 char msg[80];
@@ -673,14 +684,16 @@ static void Ws_HandleCommandJson(int fd, const char *json)
 #if WS_LIVEVIEW_ENABLE
         {
             T_DjiReturnCode lret = WsLiveview_Stop();
-            char msg[320];
+            char msg[360];
             char path[160];
+            char push[160];
             uint64_t b = 0;
             uint32_t c = 0;
-            WsLiveview_GetStats(&b, &c, path, sizeof(path));
-            snprintf(msg, sizeof(msg), "live_stop_ok bytes=%llu cbs=%u file=%s rc=0x%08X",
-                     (unsigned long long) b, (unsigned) c, path, (unsigned) lret);
-            Ws_SendCommandResult(fd, reqId, 1, msg);
+            path[0] = push[0] = '\0';
+            WsLiveview_GetStats(&b, &c, path, sizeof(path), push, sizeof(push));
+            snprintf(msg, sizeof(msg), "live_stop_ok bytes=%llu cbs=%u file=%s",
+                     (unsigned long long) b, (unsigned) c, path);
+            Ws_SendCommandResult(fd, reqId, (lret == DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) ? 1 : 0, msg);
         }
 #else
         Ws_SendCommandResult(fd, reqId, 0, "liveview_disabled");
@@ -689,14 +702,16 @@ static void Ws_HandleCommandJson(int fd, const char *json)
     }
 
     if (strcmp(name, "live_status") == 0) {
-        char msg[320];
+        char msg[400];
         char path[160];
+        char push[200];
         uint64_t b = 0;
         uint32_t c = 0;
-        path[0] = '\0';
-        WsLiveview_GetStats(&b, &c, path, sizeof(path));
-        snprintf(msg, sizeof(msg), "live_running=%d bytes=%llu cbs=%u file=%s",
-                 WsLiveview_IsRunning(), (unsigned long long) b, (unsigned) c, path);
+        path[0] = push[0] = '\0';
+        WsLiveview_GetStats(&b, &c, path, sizeof(path), push, sizeof(push));
+        snprintf(msg, sizeof(msg), "live_running=%d bytes=%llu cbs=%u file=%s push=%s",
+                 WsLiveview_IsRunning(), (unsigned long long) b, (unsigned) c, path,
+                 push[0] ? push : "none");
         Ws_SendCommandResult(fd, reqId, 1, msg);
         return;
     }
