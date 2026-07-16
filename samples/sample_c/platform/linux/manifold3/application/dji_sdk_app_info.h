@@ -35,11 +35,11 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 // ATTENTION: User must goto https://developer.dji.com/user/apps/#all to create your own dji sdk application, get dji sdk application
 // information then fill in the application information here.
-#define USER_APP_NAME               "your_app_name"
-#define USER_APP_ID                 "your_app_id"
-#define USER_APP_KEY                "your_app_key"
-#define USER_APP_LICENSE            "your_app_license"
-#define USER_DEVELOPER_ACCOUNT      "your_developer_account"
+#define USER_APP_NAME               "PSDK"
+#define USER_APP_ID                 "190335"
+#define USER_APP_KEY                "da67517ebe2dcbf37c0aac5da87ccfe"
+#define USER_APP_LICENSE            "SSobvmgORjT3OQIEHSjTWm2N2VjpmmzWw1dbHig/pdbRGDaUfVHT3CG0COfP/Tt+PxdhsdJH87Hg9s82z8I4KA=="
+#define USER_DEVELOPER_ACCOUNT      "jinzhentao2000@icloud.com"
 #define USER_BAUD_RATE              "460800"
 
 /* Exported types ------------------------------------------------------------*/

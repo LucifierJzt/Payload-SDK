@@ -31,12 +31,13 @@ if (USE_SYSTEM_ARCH MATCHES LINUX)
     add_subdirectory(samples/sample_c++/platform/linux/manifold3)
 
     execute_process(COMMAND uname -m OUTPUT_VARIABLE DEVICE_SYSTEM_ID)
+    # macOS reports arm64; Linux aarch64 hosts report aarch64. Both use aarch64 PSDK lib for install path.
     if (DEVICE_SYSTEM_ID MATCHES x86_64)
         set(LIBRARY_PATH psdk_lib/lib/x86_64-linux-gnu-gcc)
-    elseif (DEVICE_SYSTEM_ID MATCHES aarch64)
+    elseif (DEVICE_SYSTEM_ID MATCHES "aarch64|arm64")
         set(LIBRARY_PATH psdk_lib/lib/aarch64-linux-gnu-gcc)
     else ()
-        message(FATAL_ERROR "FATAL: Please confirm your platform.")
+        message(FATAL_ERROR "FATAL: Please confirm your platform. uname -m=${DEVICE_SYSTEM_ID}")
     endif ()
 
     install(FILES ${LIBRARY_PATH}/libpayloadsdk.a

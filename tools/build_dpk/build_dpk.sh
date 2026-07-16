@@ -388,14 +388,11 @@ else
 fi
 
 # prase and check userconfig field
-mapfile -t userconfig_files < <(python3 - <<END
-import json
-with open('$input_json_file') as f:
-    data = json.load(f)
-for value in data['userconfig']:
-    print(value)
-END
-)
+# Bash 3.2 (macOS /bin/bash) has no mapfile; use portable array fill.
+userconfig_files=()
+while IFS= read -r _uc_line || [ -n "$_uc_line" ]; do
+    [ -n "$_uc_line" ] && userconfig_files+=("$_uc_line")
+done < <(python3 -c "import json; [print(v) for v in json.load(open('$input_json_file')).get('userconfig', [])]")
 
 # prase and check is_ai_rendering field
 is_ai_rendering=$(python3 -c "import json; print(json.load(open('$input_json_file'))['is_ai_rendering'])")
@@ -520,18 +517,62 @@ fi
 # generate .dpk
 old_deb_file="$package_path.deb"
 new_dpk_file="$package_path.dpk"
-dpkg-deb --build "$package_path" > /dev/null 2>&1
-if [ $? -ne 0 ]; then
+
+# Portable .deb builder for hosts without dpkg-deb (e.g. macOS).
+build_deb_portable() {
+    local pkg_dir="$1"
+    local out_deb="$2"
+    local tmp
+    # Resolve to absolute paths: after cd "$tmp", relative out_deb would break (macOS ar).
+    pkg_dir=$(cd "$pkg_dir" && pwd)
+    out_deb=$(python3 -c "import os,sys; print(os.path.abspath(sys.argv[1]))" "$out_deb")
+    tmp=$(mktemp -d) || return 1
+    (
+        set -e
+        # data archive: package root without DEBIAN/
+        (
+            cd "$pkg_dir"
+            # shellcheck disable=SC2035
+            tar -czf "$tmp/data.tar.gz" --exclude='./DEBIAN' --exclude='./DEBIAN/*' . 2>/dev/null \
+                || tar -czf "$tmp/data.tar.gz" $(ls -A | grep -v '^DEBIAN$')
+        )
+        (
+            cd "$pkg_dir/DEBIAN"
+            tar -czf "$tmp/control.tar.gz" .
+        )
+        printf '2.0\n' > "$tmp/debian-binary"
+        rm -f "$out_deb"
+        # BSD ar (macOS) and GNU ar both accept this basic form.
+        (
+            cd "$tmp"
+            ar -rc "$out_deb" debian-binary control.tar.gz data.tar.gz
+        )
+    )
+    local rc=$?
+    rm -rf "$tmp"
+    return $rc
+}
+
+if command -v dpkg-deb >/dev/null 2>&1; then
+    dpkg-deb --build "$package_path" > /dev/null 2>&1
+    _deb_rc=$?
+else
+    echo "dpkg-deb not found; using portable .deb builder"
+    build_deb_portable "$package_path" "$old_deb_file"
+    _deb_rc=$?
+fi
+
+if [ $_deb_rc -ne 0 ]; then
     echo "Failed to create $old_deb_file"
     rm -rf "$package_path"
-    rm "$old_deb_file"
+    rm -f "$old_deb_file"
     exit 1
 fi
 if ! mv "$old_deb_file" "$new_dpk_file"; then
     echo "Failed to create $new_dpk_file"
     rm -rf "$package_path"
-    rm "$old_deb_file"
-    rm "$new_dpk_file"
+    rm -f "$old_deb_file"
+    rm -f "$new_dpk_file"
     exit 1
 fi
 

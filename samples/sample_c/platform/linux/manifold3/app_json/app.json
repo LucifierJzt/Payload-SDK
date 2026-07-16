@@ -1,39 +1,35 @@
 {
-    "user_app_id": "164884",
-    "firmware_version": "01.00.00.00",
+    "user_app_id": "190335",
+    "firmware_version": "01.00.00.01",
     "is_ai_rendering": "false",
     "platform": "manifold3",
     "name":{
-        "name_cn": "测试demo",
-        "name_en": "psdk-demo",
-        "name_jp": "テストデモ",
-        "name_fr": "Démo de test"
+        "name_cn": "PSDK",
+        "name_en": "PSDK",
+        "name_jp": "PSDK",
+        "name_fr": "PSDK"
     },
     "description": {
         "description_cn": [
-            "这是第一行",
-            "这是第二行",
-            "这是第三行",
-            "这是第四行"
+            "妙算3 PSDK 应用",
+            "M4TD 联调 + 公网 WS 遥测上报"
         ],
         "description_en": [
-            "This is the first line",
-            "This is the second line",
-            "This is the third line"
+            "Manifold 3 PSDK app",
+            "M4TD + public WebSocket telemetry"
         ],
         "description_jp": [
-            "これは一行目です",
-            "これは二行目です"
+            "Manifold 3 PSDK アプリ"
         ],
         "description_fr": [
-            "Ceci est la première ligne"
+            "Application PSDK Manifold 3"
         ]
     },
     "maintainer": {
-        "maintainer_cn": "大疆创新科技有限公司",
-        "maintainer_en": "DJI Innovation Technology Co., Ltd.",
-        "maintainer_jp": "大疆イノベーションテクノロジー有限会社",
-        "maintainer_fr": "Société à Responsabilité Limitée DJI Innovation Technology"
+        "maintainer_cn": "开发者",
+        "maintainer_en": "Developer",
+        "maintainer_jp": "開発者",
+        "maintainer_fr": "Développeur"
     },
     "ver_min": "00.00.00.00",
     "ver_max": "99.99.99.99",

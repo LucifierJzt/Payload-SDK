@@ -52,6 +52,7 @@
 #include "widget/test_widget_speaker.h"
 #include "widget_interaction_test/test_widget_interaction.h"
 #include "data_transmission/test_data_transmission.h"
+#include "ws_telemetry/ws_telemetry.h"
 #include "dji_sdk_config.h"
 
 /* Private constants ---------------------------------------------------------*/
@@ -100,7 +101,7 @@ int main(int argc, char **argv)
         .majorVersion = 1,
         .minorVersion = 0,
         .modifyVersion = 0,
-        .debugVersion = 0,
+        .debugVersion = 1,
     };
 
     USER_UTIL_UNUSED(argc);
@@ -227,6 +228,15 @@ int main(int argc, char **argv)
         returnCode = DjiTest_FcSubscriptionStartService();
         if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
             USER_LOG_ERROR("data subscription sample init error\n");
+        }
+#endif
+
+#ifdef CONFIG_MODULE_SAMPLE_WS_TELEMETRY_ON
+        returnCode = DjiTest_WsTelemetryStartService();
+        if (returnCode != DJI_ERROR_SYSTEM_MODULE_CODE_SUCCESS) {
+            USER_LOG_ERROR("ws telemetry service init error");
+        } else {
+            USER_LOG_INFO("ws telemetry service init success");
         }
 #endif
 
