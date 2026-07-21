@@ -1,0 +1,18 @@
+# CMake out-of-source build artifacts
+/build/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/install_manifest.txt
+/Makefile
+
+# Local CMake configuration
+/CMakeUserPresets.json
+
+# IDE and operating-system metadata
+/.idea/
+/.vscode/
+/.vs/
+.DS_Store
+Thumbs.db
