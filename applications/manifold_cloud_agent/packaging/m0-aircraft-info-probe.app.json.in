@@ -1,0 +1,27 @@
+{
+  "user_app_id": "@MANIFOLD_AGENT_USER_APP_ID@",
+  "firmware_version": "01.00.00.07",
+  "is_ai_rendering": "false",
+  "platform": "manifold3",
+  "name": {
+    "name_cn": "@MANIFOLD_AGENT_DPK_NAME@",
+    "name_en": "@MANIFOLD_AGENT_DPK_NAME@",
+    "name_jp": "@MANIFOLD_AGENT_DPK_NAME@",
+    "name_fr": "@MANIFOLD_AGENT_DPK_NAME@"
+  },
+  "description": {
+    "description_cn": ["只读 AircraftInfo 生命周期探针"],
+    "description_en": ["Read-only AircraftInfo lifecycle probe"],
+    "description_jp": ["Read-only AircraftInfo lifecycle probe"],
+    "description_fr": ["Read-only AircraftInfo lifecycle probe"]
+  },
+  "maintainer": {
+    "maintainer_cn": "Developer",
+    "maintainer_en": "Developer",
+    "maintainer_jp": "Developer",
+    "maintainer_fr": "Developer"
+  },
+  "ver_min": "00.00.00.00",
+  "ver_max": "99.99.99.99",
+  "bin": "../dji_sdk_demo_on_manifold3"
+}
